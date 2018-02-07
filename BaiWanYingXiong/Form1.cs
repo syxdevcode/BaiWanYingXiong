@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ToolGood.Words;
 
 namespace BaiWanYingXiong
 {
@@ -28,6 +31,7 @@ namespace BaiWanYingXiong
         public void InitializeChromium()
         {
             CefSettings settings = new CefSettings();
+            settings.BrowserSubprocessPath = @"x86\CefSharp.BrowserSubprocess.exe";
             // Initialize cef with the provided settings
             Cef.Initialize(settings);
             // Create a browser component
@@ -38,7 +42,61 @@ namespace BaiWanYingXiong
 
             this.splitContainer1.Panel2.Controls.Add(chromeBrowser);
             splitContainer1.Dock = DockStyle.Fill;
-            splitContainer1.IsSplitterFixed = true;
+            splitContainer1.IsSplitterFixed = true;// 不移动SplitterFixed
+            chromeBrowser.FrameLoadEnd += browser_FrameLoadEnd;
+
+        }
+
+        async void browser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
+        {
+            var result = await chromeBrowser.GetSourceAsync();
+
+            if (!string.IsNullOrEmpty(label3.Text))
+            {
+                label6.Text = "次数:" + SearchStr(result, label3.Text).ToString();
+            }
+            if (!string.IsNullOrEmpty(label4.Text))
+            {
+                label7.Text = "次数:" + SearchStr(result, label4.Text).ToString();
+            }
+            if (!string.IsNullOrEmpty(label5.Text))
+            {
+                label8.Text = "次数:" + SearchStr(result, label5.Text).ToString();
+            }
+        }
+
+        #region 
+        /// <summary>
+        /// 查找字符串数量（正则表达式）
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="search"></param>
+        /// <returns></returns>
+        public int CharNum(string str, string search)
+        {
+            int count = 0;
+            if (!string.IsNullOrEmpty(str) || !string.IsNullOrEmpty(search))
+            {
+                string[] resultString = Regex.Split(str, search, RegexOptions.IgnoreCase);
+
+                count = resultString.Length;
+            }
+            return count;
+        }
+        #endregion
+
+        /// <summary>
+        /// 查找字符串数量
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="search"></param>
+        /// <returns></returns>
+        public int SearchStr(string str, string search)
+        {
+            StringSearch iwords = new StringSearch();
+            iwords.SetKeywords(new string[1] { search });
+            var all = iwords.FindAll(str);
+            return all.Count;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
